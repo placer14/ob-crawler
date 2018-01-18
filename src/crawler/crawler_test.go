@@ -8,21 +8,6 @@ import (
 	"github.com/placer14/ob-crawler/api"
 )
 
-func newTestCrawler() *Crawler {
-	return &Crawler{
-		api: &api.FakeClient{
-			MethodResponses: map[string]interface{}{
-				"getpeers":         []string{"peer1", "peer2", "peer3"},
-				"getclosestpeers":  []string{"peer4", "peer5", "peer3"},
-				"getlistingscount": 1,
-			},
-		},
-		cacheMutex:     &sync.Mutex{},
-		workerPoolSize: 1,
-		workersActive:  &sync.WaitGroup{},
-	}
-}
-
 func prettyCalls(calls []*api.CallEntry, joiner string) string {
 	var callStrings []string
 	for _, call := range calls {
@@ -32,7 +17,24 @@ func prettyCalls(calls []*api.CallEntry, joiner string) string {
 }
 
 func TestExpectedCallsAreMadeToTheAPI(t *testing.T) {
-	crawler := newTestCrawler()
+	crawler := &Crawler{
+		api: &api.FakeClient{
+			MethodResponses: map[string]interface{}{
+				"getpeers":        []string{"peer1", "peer2", "peer3"},
+				"getclosestpeers": []string{"peer4", "peer5", "peer3"},
+				"getlistingscount": map[string]int{
+					"peer1": 1,
+					"peer2": 1,
+					"peer3": 1,
+					"peer4": 1,
+					"peer5": 1,
+				},
+			},
+		},
+		cacheMutex:     &sync.Mutex{},
+		workerPoolSize: 1,
+		workersActive:  &sync.WaitGroup{},
+	}
 	crawler.Execute()
 
 	// Expected each peer to GetClosestPeers and GetListingsCount
@@ -71,5 +73,69 @@ func TestExpectedCallsAreMadeToTheAPI(t *testing.T) {
 	if len(expectedCallEntries) != len(actualCallEntries) {
 		t.Errorf("Number of call entries do not match")
 		t.Logf("Expected:\n%+v \n\nActual:\n%+v\n\n", prettyCalls(expectedCallEntries, "\n"), prettyCalls(actualCallEntries, "\n"))
+	}
+}
+
+func TestListingCountIsAccurate(t *testing.T) {
+	getListingCounts := map[string]int{
+		"peer1": 1,
+		"peer2": 2,
+		"peer3": 3,
+		"peer4": 4,
+		"peer5": 5,
+	}
+
+	crawler := &Crawler{
+		api: &api.FakeClient{
+			MethodResponses: map[string]interface{}{
+				"getpeers":         []string{"peer1", "peer2", "peer3"},
+				"getclosestpeers":  []string{"peer4", "peer5", "peer3"},
+				"getlistingscount": getListingCounts,
+			},
+		},
+		cacheMutex:     &sync.Mutex{},
+		workerPoolSize: 1,
+		workersActive:  &sync.WaitGroup{},
+	}
+	crawler.Execute()
+
+	expectedTotal := 0
+	for _, count := range getListingCounts {
+		expectedTotal += count
+	}
+	actualTotal := crawler.ListingCount()
+	if expectedTotal != actualTotal {
+		t.Errorf("Expected to equal %d, but was %d\n", expectedTotal, actualTotal)
+	}
+}
+
+func TestNodesVisitedIsAccurate(t *testing.T) {
+	getListingCounts := map[string]int{
+		"peer1": 1,
+		"peer2": 1,
+		"peer3": 1,
+		"peer4": 1,
+		"peer5": 1,
+	}
+
+	crawler := &Crawler{
+		api: &api.FakeClient{
+			MethodResponses: map[string]interface{}{
+				"getpeers":         []string{"peer1", "peer2", "peer3"},
+				"getclosestpeers":  []string{"peer4", "peer5", "peer3"},
+				"getlistingscount": getListingCounts,
+			},
+		},
+		cacheMutex:           &sync.Mutex{},
+		workerPoolSize:       1,
+		workersActive:        &sync.WaitGroup{},
+		maximumVisitsAllowed: 2,
+	}
+	crawler.Execute()
+
+	expectedTotal := crawler.maximumVisitsAllowed
+	actualTotal := crawler.NodesVisited()
+	if expectedTotal != actualTotal {
+		t.Errorf("Expected to equal %d, but was %d\n", expectedTotal, actualTotal)
 	}
 }

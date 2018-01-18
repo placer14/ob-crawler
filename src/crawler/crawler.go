@@ -18,6 +18,7 @@ type CrawlOptions struct {
 	ApiPort        int
 	ApiTimeout     int
 	WorkerPoolSize int
+	MaxVisits      int
 }
 
 // Crawler is the engine which coordinates the workers when crawling the OB API
@@ -31,8 +32,8 @@ type Crawler struct {
 	cacheMutex  *sync.Mutex
 	lookupCache map[string]*nodeData
 
-	listingCount int
-	nodesVisited int
+	listingCount         int
+	maximumVisitsAllowed int
 }
 
 // New returns a configured Crawler based on the CrawlOptions provided in opt
@@ -46,9 +47,10 @@ func New(opt CrawlOptions) *Crawler {
 				Timeout: (time.Duration(opt.ApiTimeout) * time.Second),
 			},
 		},
-		cacheMutex:     &sync.Mutex{},
-		workerPoolSize: opt.WorkerPoolSize,
-		workersActive:  &sync.WaitGroup{},
+		cacheMutex:           &sync.Mutex{},
+		workerPoolSize:       opt.WorkerPoolSize,
+		workersActive:        &sync.WaitGroup{},
+		maximumVisitsAllowed: opt.MaxVisits,
 	}
 	return crawler
 }
@@ -83,6 +85,20 @@ func (c *Crawler) Execute() error {
 	return nil
 }
 
+// ListingCount returns the number of found listings while crawling the
+// OpenBazaar network. It is safe to read this value while Execute is in progress
+func (c *Crawler) ListingCount() (count int) {
+	count = c.listingCount
+	return
+}
+
+// NodesVisited returns the number of nodes which were attemped queried.
+// It is safe to read this value while Execute is in progress
+func (c *Crawler) NodesVisited() (count int) {
+	count = len(c.lookupCache)
+	return
+}
+
 func (c *Crawler) assignJobs() {
 	for {
 		if len(c.queue) == 0 {
@@ -96,6 +112,10 @@ func (c *Crawler) assignJobs() {
 		c.cacheMutex.Lock()
 		var nextHash = c.queue[0]
 		c.queue = c.queue[1:]
+		if c.maximumVisitsAllowed > 0 && len(c.lookupCache) >= c.maximumVisitsAllowed {
+			c.cacheMutex.Unlock()
+			continue
+		}
 		if _, exists := c.lookupCache[nextHash]; exists {
 			c.cacheMutex.Unlock()
 			continue
@@ -103,7 +123,7 @@ func (c *Crawler) assignJobs() {
 		c.lookupCache[nextHash] = &nodeData{}
 		c.cacheMutex.Unlock()
 		c.workerQueue <- nextHash
-		fmt.Printf("Assigning %s, %d visited, %d remaining, %d listings...\n", nextHash, c.nodesVisited, len(c.queue), c.listingCount)
+		fmt.Printf("Assigning %s, %d visited, %d remaining, %d listings...\n", nextHash, c.NodesVisited(), len(c.queue), c.listingCount)
 	}
 }
 
@@ -138,7 +158,6 @@ func (c *Crawler) startWorker(id int) {
 		c.queue = append(c.queue, peers...)
 		c.lookupCache[node] = data
 		c.listingCount += count
-		c.nodesVisited += 1
 		c.cacheMutex.Unlock()
 		fmt.Printf("  worker %d: completed %s\n", id, node)
 		c.workersActive.Done()

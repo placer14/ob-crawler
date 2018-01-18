@@ -45,6 +45,6 @@ func (f *FakeClient) GetClosestPeers(hash string) ([]string, error) {
 
 func (f *FakeClient) GetListingsCount(hash string) (int, error) {
 	f.CallRecord = append(f.CallRecord, &CallEntry{"getlistingscount", hash})
-	response := f.MethodResponses["getlistingscount"].(int)
-	return response, nil
+	responses := f.MethodResponses["getlistingscount"].(map[string]int)
+	return responses[hash], nil
 }
