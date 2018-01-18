@@ -125,13 +125,14 @@ func TestGetListingsCountIsRequestedAndProcessedSuccessfully(t *testing.T) {
 	var (
 		c          = newTestClient()
 		targetPeer = "peer"
-		testPath   = fmt.Sprintf("http://%s:%d/ob/listings/%s", c.Host, c.Port, targetPeer)
+		testPath   = fmt.Sprintf("http://%s:%d/ob/profile/%s", c.Host, c.Port, targetPeer)
 		// a list of anonymous things
-		listings      = []interface{}{struct{}{}, struct{}{}, struct{}{}}
-		expectedCount = len(listings)
+		expectedCount = 5
+		stats         = &api.StatisticsStub{ListingCount: expectedCount}
+		profile       = api.ProfileStub{PeerID: targetPeer, Stats: stats}
 	)
 
-	response, err := httpmock.NewJsonResponse(http.StatusOK, listings)
+	response, err := httpmock.NewJsonResponse(http.StatusOK, profile)
 	if err != nil {
 		t.Error(err)
 	}

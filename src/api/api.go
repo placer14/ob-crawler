@@ -85,16 +85,24 @@ func (c *Client) GetPeers() ([]string, error) {
 // GetListingsCount retrieves the list of contracts offered by the node
 // referenced by the hash originHash
 func (c *Client) GetListingsCount(originHash string) (int, error) {
-	resp, err := c.doRequest(fmt.Sprintf("listings/%s", originHash))
+	resp, err := c.doRequest(fmt.Sprintf("profile/%s", originHash))
 	if err != nil {
-		return 0, fmt.Errorf("requesting listings: %s\n", err)
+		return 0, fmt.Errorf("requesting profile: %s\n", err)
 	}
 
-	listings := make([]struct{}, 0)
+	profile := &ProfileStub{}
 	decoder := json.NewDecoder(resp.Body)
 	defer resp.Body.Close()
-	if err = decoder.Decode(&listings); err != nil {
-		return 0, fmt.Errorf("decoding listings: %s\n", err)
+	if err = decoder.Decode(profile); err != nil {
+		return 0, fmt.Errorf("decoding profile: %s\n", err)
 	}
-	return len(listings), nil
+	return profile.Stats.ListingCount, nil
+}
+
+type StatisticsStub struct {
+	ListingCount int `json:"listingCount"`
+}
+type ProfileStub struct {
+	PeerID string          `json:"peerID"`
+	Stats  *StatisticsStub `json:"stats"`
 }

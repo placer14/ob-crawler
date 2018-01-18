@@ -3,7 +3,6 @@ package crawler
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -43,7 +42,7 @@ func New(opt CrawlOptions) *Crawler {
 			Port:       opt.ApiPort,
 			AuthCookie: opt.AuthCookie,
 			Client: &http.Client{
-				Timeout: time.Duration(opt.ApiTimeout * time.Seconds),
+				Timeout: (time.Duration(opt.ApiTimeout) * time.Second),
 			},
 		},
 		cacheMutex:     &sync.Mutex{},
@@ -122,9 +121,7 @@ func (c *Crawler) startWorker(id int) {
 		}
 		count, err := c.api.GetListingsCount(node)
 		if err != nil {
-			if strings.Contains(err.Error(), "404 Not Found") == false {
-				fmt.Printf("  worker %d: error (%s): %s\n", id, node, err)
-			}
+			fmt.Printf("  worker %d: error (%s): %s\n", id, node, err)
 		}
 
 		data := &nodeData{
