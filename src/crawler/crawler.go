@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -112,6 +113,11 @@ type nodeData struct {
 }
 
 func (c *Crawler) startWorker(id int) {
+	if _, ok := c.api.(*api.Client); ok {
+		// Only delay when using the real Client
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+	}
+
 	for node := range c.workerQueue {
 		c.workersActive.Add(1)
 		peers, err := c.api.GetClosestPeers(node)
