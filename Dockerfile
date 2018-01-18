@@ -4,6 +4,8 @@ ENV APP_PATH=github.com/placer14/ob-crawler
 
 WORKDIR /go/src/$APP_PATH
 
+RUN go get gopkg.in/jarcoal/httpmock.v1
+
 COPY ./src .
 
 ENTRYPOINT ["/bin/bash"]
