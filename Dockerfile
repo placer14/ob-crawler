@@ -1,7 +1,7 @@
 FROM golang:1.8.1
 WORKDIR /go/src/github.com/placer14/ob-crawler
 RUN go get gopkg.in/jarcoal/httpmock.v1
-COPY ./src .
+COPY . .
 RUN go test ./... && \
   CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o /opt/ob-crawler .
 

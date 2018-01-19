@@ -14,7 +14,7 @@ services:
       dockerfile: ./Dockerfile.dev
     volumes:
       - obdata:/var/lib/openbazaar
-      - ./src:/go/src/github.com/placer14/ob-crawler
+      - .:/go/src/github.com/placer14/ob-crawler
       - ./config:/root/config
     #depends_on:
       #- api

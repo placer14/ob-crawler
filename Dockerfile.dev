@@ -6,6 +6,6 @@ WORKDIR /go/src/$APP_PATH
 
 RUN go get gopkg.in/jarcoal/httpmock.v1
 
-COPY ./src .
+COPY . .
 
 ENTRYPOINT ["/bin/bash"]
