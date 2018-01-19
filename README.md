@@ -1,5 +1,6 @@
-The Challenge
-===
+# OpenBazaar Crawler
+
+### The Challenge
 
 Using Go write an OpenBazaar network crawler that logs the total number of listings on the network. The crawler may connect to a running openbazaar-go instance and use the API.
 

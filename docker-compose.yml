@@ -1,19 +1,23 @@
 version: '3'
 services:
-  api:
-    image: openbazaar/server:v0.11.0-rc2
-    volumes:
-      - obdata:/var/lib/openbazaar
-    ports:
-      - "4002:4002" # API
-  crawler:
+  #api:
+    #image: openbazaar/server:v0.11.0-rc2
+    #volumes:
+      #- obdata:/var/lib/openbazaar
+    #ports:
+      #- "4002:4002" # API
+  prod:
     build: .
+  crawler:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.dev
     volumes:
       - obdata:/var/lib/openbazaar
       - ./src:/go/src/github.com/placer14/ob-crawler
       - ./config:/root/config
-    depends_on:
-      - api
+    #depends_on:
+      #- api
 
 volumes:
   obdata:
